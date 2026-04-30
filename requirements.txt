@@ -8,6 +8,7 @@ PyJWT
 urllib3
 protobuf-decoder
 pytz
+gunicorn
 aiohttp
 cfonts
 flask
