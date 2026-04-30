@@ -1,6 +1,5 @@
 pyTelegramBotAPI
 python-telegram-bot
-telebot
 psutil
 requests
 Flask
