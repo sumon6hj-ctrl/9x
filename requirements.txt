@@ -22,3 +22,4 @@ eventlet
 python-dotenv
 tgcrypto
 pyarmor
+mg24_proto
