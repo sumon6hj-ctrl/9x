@@ -1,0 +1,1058 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.site_title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ config.icon_url }}">
+    <style>
+        :root {
+            --primary: {{ colors.primary }};
+            --secondary: {{ colors.secondary }};
+            --accent: {{ colors.accent }};
+            --bg: {{ colors.background }};
+            --card-bg: {{ colors.card_bg }};
+            --text: #ffffff;
+            --danger: {{ colors.danger }};
+            --header-text: #ffffff;
+            --stats-text: #ffffff;
+            --font-family: {{ config.fonts[config.font_family] }};
+        }
+        
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            font-family: var(--font-family);
+            padding-bottom: 80px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+        }
+        
+        .header-text {
+            color: var(--header-text);
+        }
+        
+        .stats-text {
+            color: var(--stats-text);
+        }
+        
+        .theme-gradient { 
+            background: linear-gradient(to right, var(--primary), var(--secondary), var(--accent)); 
+        }
+        .theme-gradient-hover:hover { 
+            background: linear-gradient(to right, var(--accent), var(--secondary), var(--primary)); 
+        }
+        .theme-active-border { 
+            border-bottom: 2px solid var(--primary); 
+            color: var(--primary); 
+        }
+        
+        .card-bg { 
+            background: var(--card-bg); 
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+        
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: var(--bg); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
+        
+        .modal-enter { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .fab { animation: bounceIn 0.5s; }
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .log-text { font-size: 11px; user-select: text; }
+        .log-text::selection { background: var(--primary); color: black; }
+
+        .sidebar {
+            position: fixed;
+            left: -280px;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: var(--card-bg);
+            border-right: 2px solid var(--primary);
+            z-index: 1000;
+            transition: left 0.3s ease;
+            box-shadow: 5px 0 30px rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+        
+        .sidebar.open {
+            left: 0;
+        }
+        
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 999;
+            display: none;
+        }
+        
+        .sidebar-overlay.open {
+            display: block;
+        }
+        
+        .menu-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 14px;
+            border-left: 3px solid transparent;
+        }
+        
+        .menu-item:hover {
+            background: rgba(0,0,0,0.2);
+            border-left-color: var(--primary);
+        }
+        
+        .menu-item.active {
+            background: rgba(0,0,0,0.3);
+            border-left-color: var(--primary);
+        }
+        
+        .dropdown-menu { 
+            display: none; 
+            position: absolute; 
+            right: 0; 
+            top: 100%; 
+            background: var(--card-bg); 
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; 
+            z-index: 10; 
+            min-width: 200px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        .dropdown:hover .dropdown-menu { display: block; }
+        
+        .dropdown-menu button, .dropdown-menu a {
+            width: 100%;
+            text-align: left;
+            padding: 10px 15px;
+            color: var(--text);
+            transition: all 0.2s;
+            font-size: 13px;
+            border: none;
+            background: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dropdown-menu button:hover, .dropdown-menu a:hover {
+            background: rgba(0,0,0,0.3);
+            color: var(--primary);
+        }
+
+        .main-view {
+            display: none;
+        }
+        
+        .main-view.active {
+            display: block;
+        }
+
+        .server-card {
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stats-number {
+            color: var(--stats-text);
+            font-weight: bold;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--primary);
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .password-toggle:hover {
+            opacity: 1;
+        }
+
+        .file-item {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.2s;
+            margin-bottom: 2px;
+            color: #ffffff;
+        }
+        
+        .file-item:hover {
+            background: rgba(0,0,0,0.5);
+            border-color: var(--primary);
+        }
+        
+        .file-size {
+            font-size: 12px;
+            color: #ffffff;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+        
+        .folder-size {
+            font-size: 11px;
+            color: #ffffff;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        .total-size {
+            font-size: 13px;
+            color: #ffffff;
+            opacity: 0.9;
+            font-weight: bold;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 6px;
+            margin-top: 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .file-icon {
+            color: #ffffff;
+            opacity: 0.8;
+        }
+
+        .file-name {
+            color: #ffffff;
+        }
+
+        .color-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .color-dot:hover {
+            transform: scale(1.2);
+            border-color: white;
+            box-shadow: 0 0 15px currentColor;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar - Only 4 options -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="p-6 text-center border-b" style="border-color: var(--primary);">
+            <img src="{{ config.icon_url }}" alt="icon" class="w-12 h-12 mx-auto mb-2" style="filter: drop-shadow(0 0 10px var(--primary));">
+            <h2 class="text-xl font-bold mt-2 header-text">{{ config.site_header }}</h2>
+            <p class="text-xs mt-2 opacity-50">{{ config.theme|upper }} MODE</p>
+        </div>
+        
+        <div class="menu-item active" onclick="switchMainView('dashboard')">
+            <i class="fas fa-tachometer-alt w-5"></i>
+            <span>Dashboard</span>
+        </div>
+        
+        <div class="menu-item" onclick="switchMainView('settings')">
+            <i class="fas fa-cog w-5"></i>
+            <span>Settings</span>
+        </div>
+        
+        <div class="menu-item" onclick="switchMainView('telegram')">
+            <i class="fab fa-telegram w-5"></i>
+            <span>Telegram Bot</span>
+        </div>
+        
+        <div class="menu-item" onclick="location.href='/logout'">
+            <i class="fas fa-sign-out-alt w-5"></i>
+            <span>Logout</span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="bg-black/90 backdrop-blur-md border-b sticky top-0 z-30 px-4 py-3 shadow-lg" style="border-color: var(--primary);">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="text-2xl hover:opacity-80 transition" style="color: var(--primary);">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center gap-2">
+                    <img src="{{ config.icon_url }}" alt="icon" class="w-6 h-6" style="filter: drop-shadow(0 0 5px var(--primary));">
+                    <h1 class="text-lg font-bold tracking-wider header-text">{{ config.site_header }}</h1>
+                </div>
+            </div>
+            <div class="text-[10px] font-mono stats-text">
+                CPU: <span id="cpu-usage" class="stats-number">{{ cpu }}%</span> | 
+                RAM: <span id="ram-usage" class="stats-number">{{ ram }}%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div id="dashboard-view" class="main-view active">
+        <div class="px-4 mt-6 grid grid-cols-2 gap-3">
+            <div class="card-bg p-4 rounded-xl flex flex-col items-center">
+                <span class="text-2xl stats-number" id="running-count">{{ running_count }}</span>
+                <span class="text-[10px] opacity-50 uppercase tracking-widest stats-text">Running</span>
+            </div>
+            <div class="card-bg p-4 rounded-xl flex flex-col items-center">
+                <span class="text-2xl stats-number" id="total-count">{{ total_count }}</span>
+                <span class="text-[10px] opacity-50 uppercase tracking-widest stats-text">Total</span>
+            </div>
+        </div>
+
+        <div class="px-4 mt-8 space-y-4">
+            {% for id, s in servers.items() %}
+            <div class="card-bg rounded-2xl overflow-hidden shadow-lg relative group server-card">
+                <div class="absolute left-0 top-0 bottom-0 w-1" style="background: {{ 'var(--primary)' if s.status == 'running' else 'var(--danger)' }};"></div>
+                
+                <div class="p-5 pl-7">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-bold text-lg text-white">{{ id }}</h3>
+                            <p class="text-[10px] opacity-50 font-mono mt-1">{{ s.cmd }}</p>
+                        </div>
+                        <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider" 
+                              style="background: rgba(0,0,0,0.3); color: {{ 'var(--primary)' if s.status == 'running' else 'var(--danger)' }}; border: 1px solid {{ 'var(--primary)' if s.status == 'running' else 'var(--danger)' }};">
+                            {{ s.status }}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-2">
+                        {% if s.status == 'running' %}
+                        <a href="/action/{{ id }}/stop" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">
+                            <i class="fas fa-stop"></i>
+                        </a>
+                        <a href="/action/{{ id }}/restart" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: yellow; border: 1px solid yellow;">
+                            <i class="fas fa-sync"></i>
+                        </a>
+                        {% else %}
+                        <a href="/action/{{ id }}/start" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: var(--primary); border: 1px solid var(--primary);">
+                            <i class="fas fa-play"></i>
+                        </a>
+                        <a href="/action/{{ id }}/delete" onclick="return confirm('Delete this server?')" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                        {% endif %}
+                        <button onclick="toggleLog('{{ id }}')" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: cyan; border: 1px solid cyan;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="openSettings('{{ id }}')" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: magenta; border: 1px solid magenta;">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+
+                    <div id="log-box-{{ id }}" class="hidden mt-4 pt-3 border-t" style="border-color: var(--primary);">
+                        <div class="flex justify-end mb-1">
+                            <button onclick="copyLog('log-{{ id }}')" class="bg-black/50 hover:bg-black/80 rounded px-2 py-1 text-xs text-white opacity-40 hover:opacity-100 transition" title="Copy all logs">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <pre id="log-{{ id }}" class="bg-black p-3 rounded-lg text-[11px] h-32 overflow-y-auto custom-scroll font-mono leading-tight log-text" style="color: var(--primary);">Waiting for logs...</pre>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            {% if total_count == 0 %}
+            <div class="text-center py-10 opacity-50">
+                <img src="{{ config.icon_url }}" alt="icon" class="w-16 h-16 mx-auto mb-2" style="filter: drop-shadow(0 0 10px var(--primary));">
+                <p class="text-xs">No servers deployed</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Settings View - শুধু Admin Login বাটন -->
+<div id="settings-view" class="main-view px-4 py-6">
+    <h2 class="text-xl font-bold mb-6 header-text">⚙️ Settings</h2>
+    
+    <div class="card-bg p-6 rounded-xl">
+        <div class="text-center">
+            <a href="/admin_login" class="inline-block w-full theme-gradient text-white font-bold py-4 rounded-xl text-lg transition hover:opacity-80">
+                <i class="fas fa-user-shield mr-3"></i> ADMIN LOGIN
+            </a>
+            <p class="text-xs opacity-50 mt-2">Access the admin panel to manage all servers, users, and settings</p>
+        </div>
+    </div>
+</div>
+
+    <!-- Telegram Bot View -->
+    <div id="telegram-view" class="main-view px-4 py-6">
+        <h2 class="text-xl font-bold mb-6 header-text">🤖 Telegram Bot Hosting</h2>
+        
+        <div class="card-bg p-6 rounded-xl space-y-6">
+            <div>
+                <label class="block text-sm mb-2 opacity-70 stats-text">Bot Token</label>
+                <input type="text" id="bot-token" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz" 
+                       class="w-full bg-black border p-3 rounded-lg font-mono" style="border-color: var(--primary); color: var(--text);">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="deployTelegramBot()" class="py-3 rounded-lg transition" style="background: rgba(0,0,0,0.3); color: var(--primary); border: 1px solid var(--primary);">
+                    <i class="fab fa-telegram mr-2"></i> DEPLOY BOT
+                </button>
+                <button onclick="window.open('https://t.me/botfather', '_blank')" class="py-3 rounded-lg transition" style="background: rgba(0,0,0,0.3); color: #0099ff; border: 1px solid #0099ff;">
+                    <i class="fas fa-external-link-alt mr-2"></i> @BotFather
+                </button>
+            </div>
+            
+            <div class="bg-black/50 p-4 rounded-lg text-xs space-y-2">
+                <p><i class="fas fa-check-circle mr-2" style="color: var(--primary);"></i> Auto-restart enabled (24h)</p>
+                <p><i class="fas fa-check-circle mr-2" style="color: var(--primary);"></i> TeleBot 4.14.1 included</p>
+                <p><i class="fas fa-check-circle mr-2" style="color: var(--primary);"></i> Commands: /start, /help, /api, /ping, /uptime, /info</p>
+                <p><i class="fas fa-check-circle mr-2" style="color: var(--primary);"></i> API endpoint checker with JSON format</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Server FAB -->
+    <button onclick="document.getElementById('createModal').classList.remove('hidden')" 
+            class="fab fixed bottom-6 right-6 theme-gradient theme-gradient-hover text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-xl z-50 transition">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Create Server Modal -->
+    <div id="createModal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center">
+        <div class="card-bg w-full sm:w-96 rounded-t-3xl sm:rounded-2xl p-6 modal-enter">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-white font-bold text-lg">Deploy New Server</h3>
+                <button onclick="document.getElementById('createModal').classList.add('hidden')" class="opacity-50 hover:opacity-100"><i class="fas fa-times"></i></button>
+            </div>
+            <form action="/create_server" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <input type="text" name="server_name" placeholder="Name (e.g. MusicBot)" class="w-full bg-black border p-3 rounded-xl text-white focus:outline-none" style="border-color: var(--primary);" required>
+                <input type="text" name="start_command" placeholder="Command (e.g. python3 bot.py)" class="w-full bg-black border p-3 rounded-xl text-white focus:outline-none" style="border-color: var(--primary);" required>
+                <div class="border border-dashed rounded-xl p-4 text-center" style="border-color: var(--primary);">
+                    <input type="file" name="file" class="text-xs">
+                </div>
+                <button type="submit" class="w-full theme-gradient theme-gradient-hover text-white font-bold py-3 rounded-xl transition">Create & Start</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Server Settings Modal -->
+    <div id="manageModal" class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="card-bg w-full max-w-2xl h-[80vh] rounded-2xl flex flex-col modal-enter">
+            <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--primary);">
+                <div>
+                    <h3 class="text-white font-bold text-lg" id="manage-title">Server Manager</h3>
+                    <span id="manage-id" class="text-xs opacity-50">ID: --</span>
+                </div>
+                <button onclick="closeSettings()" class="opacity-50 hover:opacity-100"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="flex border-b" style="border-color: var(--primary);">
+                <button onclick="switchTab('console')" id="tab-console" class="flex-1 py-3 text-sm font-bold theme-active-border">CONSOLE</button>
+                <button onclick="switchTab('files')" id="tab-files" class="flex-1 py-3 text-sm font-bold opacity-50 hover:opacity-100">FILES</button>
+                <button onclick="switchTab('packages')" id="tab-packages" class="flex-1 py-3 text-sm font-bold opacity-50 hover:opacity-100">PACKAGES</button>
+                <button onclick="switchTab('config')" id="tab-config" class="flex-1 py-3 text-sm font-bold opacity-50 hover:opacity-100">CONFIG</button>
+            </div>
+
+            <div class="flex-1 overflow-hidden relative">
+                <div id="view-console" class="absolute inset-0 flex flex-col p-4">
+                    <div class="flex gap-2 mb-3">
+                        <button onclick="serverAction('start')" class="flex-1 py-2 rounded-lg text-sm font-bold transition" style="background: rgba(0,0,0,0.3); color: var(--primary); border: 1px solid var(--primary);">
+                            <i class="fas fa-play mr-1"></i> START
+                        </button>
+                        <button onclick="serverAction('stop')" class="flex-1 py-2 rounded-lg text-sm font-bold transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">
+                            <i class="fas fa-stop mr-1"></i> STOP
+                        </button>
+                        <button onclick="serverAction('restart')" class="flex-1 py-2 rounded-lg text-sm font-bold transition" style="background: rgba(0,0,0,0.3); color: yellow; border: 1px solid yellow;">
+                            <i class="fas fa-sync mr-1"></i> RESTART
+                        </button>
+                    </div>
+                    <div class="flex justify-end mb-1">
+                        <button onclick="copyLog('live-log')" class="bg-black/50 hover:bg-black/80 rounded px-2 py-1 text-xs text-white opacity-40 hover:opacity-100 transition" title="Copy all logs">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <pre id="live-log" class="flex-1 bg-black p-4 rounded-xl text-[11px] font-mono overflow-y-auto custom-scroll mb-3 border log-text" style="color: var(--primary); border-color: var(--primary);">Loading...</pre>
+                    <div class="flex gap-2">
+                        <input type="text" id="console-input" placeholder="Type command & press Enter..." class="flex-1 bg-black border rounded-lg px-4 py-2 text-white text-sm focus:outline-none" style="border-color: var(--primary);">
+                        <button onclick="sendCommand()" class="px-4 rounded-lg transition" style="background: var(--primary); color: black;">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="view-files" class="hidden absolute inset-0 flex flex-col p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex gap-2">
+                            <button onclick="showCreateFileDialog()" class="px-3 py-1.5 rounded-lg text-xs transition" style="background: rgba(0,0,0,0.3); color: var(--primary); border: 1px solid var(--primary);">
+                                <i class="fas fa-plus mr-1"></i> New File
+                            </button>
+                            <button onclick="createNewFolder()" class="px-3 py-1.5 rounded-lg text-xs transition" style="background: rgba(0,0,0,0.3); color: yellow; border: 1px solid yellow;">
+                                <i class="fas fa-folder-plus mr-1"></i> Folder
+                            </button>
+                            <span id="current-path-display" class="text-xs opacity-50 self-center font-mono">/</span>
+                        </div>
+                        <label class="px-3 py-1.5 rounded-lg text-xs cursor-pointer transition" style="background: rgba(0,0,0,0.3); color: #0099ff; border: 1px solid #0099ff;">
+                            <i class="fas fa-upload mr-1"></i> Upload
+                            <input type="file" id="upload-input" class="hidden" onchange="uploadFile(this)">
+                        </label>
+                    </div>
+                    <div class="flex-1 overflow-y-auto custom-scroll space-y-1" id="file-list"></div>
+                </div>
+
+                <div id="view-packages" class="hidden absolute inset-0 p-6 overflow-y-auto custom-scroll">
+                    <label class="block text-xs uppercase tracking-widest mb-2 opacity-70 stats-text">Package Name</label>
+                    
+                    <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                        <select id="pkg-type" class="w-full sm:w-32 bg-black border p-3 rounded-xl outline-none" style="border-color: var(--primary); color: var(--text);">
+                            <option value="pip">PIP</option>
+                            <option value="npm">NPM</option>
+                            <option value="apt">APT</option>
+                            <option value="pkg">PKG</option>
+                        </select>
+                        <input id="pkg-name" placeholder="e.g. requests" class="flex-1 bg-black border p-3 rounded-xl outline-none" style="border-color: var(--primary); color: var(--text);">
+                    </div>
+                    
+                    <div class="flex gap-3 mb-6">
+                        <button onclick="packageAction('install')" class="flex-1 py-3 rounded-xl transition" style="background: rgba(0,0,0,0.3); color: var(--primary); border: 1px solid var(--primary);">
+                            <i class="fas fa-download mr-2"></i> INSTALL
+                        </button>
+                        <button onclick="packageAction('uninstall')" class="flex-1 py-3 rounded-xl transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">
+                            <i class="fas fa-trash-alt mr-2"></i> UNINSTALL
+                        </button>
+                    </div>
+                </div>
+
+                <div id="view-config" class="hidden absolute inset-0 p-6 overflow-y-auto custom-scroll">
+                    <label class="block text-xs uppercase tracking-widest mb-2 opacity-70 stats-text">Start Command</label>
+                    <input id="config-cmd" class="w-full bg-black border p-3 rounded-xl mb-4 outline-none" style="border-color: var(--primary); color: var(--text);" value="">
+                    
+                    <label class="block text-xs uppercase tracking-widest mb-2 opacity-70 stats-text">Working Directory</label>
+                    <input id="config-cwd" placeholder="Folder name" class="w-full bg-black border p-3 rounded-xl mb-6 outline-none" style="border-color: var(--primary); color: var(--text);" value="">
+                    
+                    <hr class="border-opacity-20 mb-6" style="border-color: var(--primary);">
+                    
+                    <label class="block text-xs uppercase tracking-widest mb-2 opacity-70 stats-text">Auto Restart</label>
+                    <div class="flex items-center gap-4 mb-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="config-auto-restart" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
+                        <select id="config-restart-interval" class="bg-black border p-2 rounded-xl text-sm outline-none" style="border-color: var(--primary); color: var(--text);">
+                            <option value="30s">30 Seconds</option>
+                            <option value="1m">1 Minute</option>
+                            <option value="5m">5 Minutes</option>
+                            <option value="10m">10 Minutes</option>
+                            <option value="30m">30 Minutes</option>
+                            <option value="1h">1 Hour</option>
+                            <option value="2h">2 Hours</option>
+                            <option value="3h">3 Hours</option>
+                            <option value="6h">6 Hours</option>
+                            <option value="12h">12 Hours</option>
+                            <option value="24h">24 Hours</option>
+                        </select>
+                    </div>
+                    
+                    <div id="restart-countdown" class="text-xs mb-6 font-mono opacity-70 stats-text"></div>
+
+                    <button onclick="saveConfig()" class="w-full theme-gradient theme-gradient-hover text-white font-bold py-3 rounded-xl transition">SAVE CHANGES</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create File Modal -->
+    <div id="createFileModal" class="hidden fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="card-bg w-full max-w-lg rounded-2xl p-6 modal-enter">
+            <h3 class="text-white font-bold text-lg mb-4">Create New File</h3>
+            <input type="text" id="new-filename" placeholder="filename.py" class="w-full bg-black border p-3 rounded-lg mb-4" style="border-color: var(--primary); color: var(--text);">
+            <textarea id="new-file-content" rows="8" placeholder="File content..." class="w-full bg-black border p-3 rounded-lg mb-4 font-mono text-sm" style="border-color: var(--primary); color: var(--text);"></textarea>
+            <div class="flex gap-3">
+                <button onclick="createNewFile()" class="flex-1 py-2 rounded-lg transition" style="background: rgba(0,0,0,0.3); color: var(--primary); border: 1px solid var(--primary);">
+                    CREATE
+                </button>
+                <button onclick="closeCreateFileModal()" class="flex-1 py-2 rounded-lg transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">
+                    CANCEL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit File Modal -->
+    <div id="editModal" class="hidden fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="card-bg w-full max-w-3xl h-[80vh] rounded-2xl flex flex-col modal-enter">
+            <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--primary);">
+                <h3 class="text-white font-bold text-lg" id="edit-title">Edit File</h3>
+                <button onclick="closeEditModal()" class="opacity-50 hover:opacity-100"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <textarea id="edit-content" class="flex-1 bg-black p-4 text-[13px] font-mono border-0 outline-none resize-none custom-scroll log-text" style="color: var(--primary);"></textarea>
+            <div class="p-4 border-t flex justify-end gap-3" style="border-color: var(--primary);">
+                <button onclick="closeEditModal()" class="px-6 py-2 rounded-lg transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">Cancel</button>
+                <button onclick="saveEditedFile()" class="px-6 py-2 theme-gradient theme-gradient-hover text-white rounded-lg transition">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Variables ---
+        let currentServer = null;
+        let logInterval = null;
+        let countdownInterval = null;
+        let currentPath = '';
+        let currentEditFile = { name: '', path: '' };
+
+        // --- Sidebar ---
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('open');
+        }
+
+        function switchMainView(view) {
+            document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
+            document.getElementById(view + '-view').classList.add('active');
+            
+            document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+            
+            toggleSidebar();
+        }
+
+        // --- Copy Log ---
+        function copyLog(elementId) {
+            const pre = document.getElementById(elementId);
+            if (pre) {
+                const text = pre.textContent || pre.innerText;
+                navigator.clipboard.writeText(text).catch(() => {});
+            }
+        }
+
+        // --- Server Actions ---
+        function serverAction(action) {
+            if (!currentServer) return;
+            fetch('/action/' + currentServer + '/' + action).then(() => {
+                setTimeout(() => location.reload(), 500);
+            });
+        }
+
+        function sendCommand() {
+            const input = document.getElementById('console-input');
+            const cmd = input.value;
+            if (!cmd || !currentServer) return;
+            const fd = new FormData();
+            fd.append('command', cmd);
+            fetch('/send_input/' + currentServer, { method: 'POST', body: fd })
+                .then(() => {
+                    input.value = '';
+                    setTimeout(() => location.reload(), 500);
+                });
+        }
+
+        document.getElementById('console-input')?.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") sendCommand();
+        });
+
+        // --- Logs ---
+        function toggleLog(id) {
+            const box = document.getElementById('log-box-' + id);
+            if (box) box.classList.toggle('hidden');
+            if (!box.classList.contains('hidden')) {
+                forceRefreshLog(id);
+            }
+        }
+
+        function forceRefreshLog(id) {
+            fetch('/get_logs/' + id).then(r => r.json()).then(d => {
+                const el = document.getElementById('log-' + id);
+                if (el && d.logs) {
+                    el.textContent = d.logs;
+                    el.scrollTop = el.scrollHeight;
+                }
+            });
+        }
+
+        setInterval(() => {
+            {% for id in servers %}
+            (function() {
+                const box = document.getElementById('log-box-{{ id }}');
+                if (box && !box.classList.contains('hidden')) {
+                    forceRefreshLog('{{ id }}');
+                }
+            })();
+            {% endfor %}
+        }, 2000);
+
+        // --- Server Settings Modal ---
+        function openSettings(id) {
+            currentServer = id;
+            currentPath = '';
+            document.getElementById('manage-title').innerText = id;
+            document.getElementById('manage-id').innerText = "ID: " + id;
+            document.getElementById('manageModal').classList.remove('hidden');
+            document.getElementById('manageModal').classList.add('flex');
+            switchTab('console');
+            startCountdown();
+        }
+
+        function closeSettings() {
+            document.getElementById('manageModal').classList.add('hidden');
+            document.getElementById('manageModal').classList.remove('flex');
+            currentServer = null;
+            if (logInterval) clearInterval(logInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+        }
+
+        function switchTab(tab) {
+            ['console', 'files', 'packages', 'config'].forEach(t => {
+                document.getElementById('view-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).classList.remove('theme-active-border');
+                document.getElementById('tab-' + t).classList.add('opacity-50');
+            });
+            document.getElementById('view-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('theme-active-border');
+            document.getElementById('tab-' + tab).classList.remove('opacity-50');
+
+            if (tab === 'console') {
+                refreshLiveLog();
+                if (logInterval) clearInterval(logInterval);
+                logInterval = setInterval(refreshLiveLog, 1500);
+            } else {
+                if (logInterval) clearInterval(logInterval);
+            }
+            if (tab === 'files') {
+                loadFiles();
+            }
+            if (tab === 'config') {
+                loadServerConfig();
+            }
+        }
+
+        function refreshLiveLog() {
+            if (!currentServer) return;
+            fetch('/get_logs/' + currentServer).then(r => r.json()).then(d => {
+                const el = document.getElementById('live-log');
+                if (d.logs) {
+                    el.textContent = d.logs;
+                    el.scrollTop = el.scrollHeight;
+                }
+            });
+        }
+
+        function loadServerConfig() {
+            if (!currentServer) return;
+            fetch('/files/' + currentServer + '?path=').then(r => r.json()).then(d => {
+                document.getElementById('config-cmd').value = d.cmd || '';
+                document.getElementById('config-cwd').value = d.cwd || '';
+                document.getElementById('config-auto-restart').checked = d.auto_restart || false;
+                document.getElementById('config-restart-interval').value = d.restart_interval || '1h';
+            });
+        }
+
+        function saveConfig() {
+            const cmd = document.getElementById('config-cmd').value;
+            const cwd = document.getElementById('config-cwd').value;
+            const autoRestart = document.getElementById('config-auto-restart').checked;
+            const restartInterval = document.getElementById('config-restart-interval').value;
+            const fd = new FormData();
+            fd.append('cmd', cmd);
+            fd.append('cwd', cwd);
+            fd.append('auto_restart', autoRestart);
+            fd.append('restart_interval', restartInterval);
+            fetch('/update_settings/' + currentServer, { method: 'POST', body: fd })
+                .then(() => alert('Settings Saved!'));
+        }
+
+        function startCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+
+        function updateCountdown() {
+            if (!currentServer) return;
+            fetch('/server_info/' + currentServer)
+                .then(res => res.json())
+                .then(data => {
+                    const el = document.getElementById('restart-countdown');
+                    if (!data.auto_restart || data.status !== 'running') {
+                        el.innerText = '';
+                        return;
+                    }
+                    const intervalMap = {
+                        '30s': 30, '1m': 60, '5m': 300, '10m': 600, '30m': 1800,
+                        '1h': 3600, '2h': 7200, '3h': 10800, '6h': 21600,
+                        '12h': 43200, '24h': 86400
+                    };
+                    const intervalSec = intervalMap[data.restart_interval] || 3600;
+                    const elapsed = Math.floor(Date.now() / 1000) - data.last_start_time;
+                    const remaining = Math.max(0, intervalSec - elapsed);
+                    const mins = Math.floor(remaining / 60);
+                    const secs = remaining % 60;
+                    el.innerText = `Auto restart in: ${mins}m ${secs}s`;
+                });
+        }
+
+        // --- File Management ---
+        function loadFiles(subpath = null) {
+            if (!currentServer) return;
+            if (subpath !== null) currentPath = subpath;
+            
+            fetch(`/files/${currentServer}?path=${currentPath}`).then(r => r.json()).then(d => {
+                document.getElementById('current-path-display').innerText = "/" + currentPath;
+                const list = document.getElementById('file-list');
+                list.innerHTML = '';
+                
+                if (currentPath) {
+                    const parent = currentPath.split('/').slice(0, -1).join('/');
+                    list.innerHTML += `
+                        <div onclick="loadFiles('${parent}')" class="flex items-center p-3 bg-gray-900/30 rounded-lg cursor-pointer hover:bg-gray-800/50 transition file-item" style="border: 1px solid rgba(255,255,255,0.1);">
+                            <i class="fas fa-level-up-alt mr-3 file-icon"></i> 
+                            <span class="text-sm file-name">..</span>
+                        </div>`;
+                }
+                
+                if (d.files && d.files.length === 0) {
+                    list.innerHTML += '<div class="text-center mt-10 opacity-30">Empty directory</div>';
+                }
+
+                let totalFolderSize = 0;
+                d.files.forEach(f => {
+                    if (f.type === 'file') {
+                        totalFolderSize += f.raw_size || 0;
+                    }
+                });
+
+                d.files.forEach(f => {
+                    const clickAction = f.type === 'dir' ? `onclick="loadFiles('${currentPath ? currentPath + '/' + f.name : f.name}')"` : '';
+                    
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center p-3 bg-black/30 rounded-lg hover:bg-black/50 transition group file-item" style="border: 1px solid rgba(255,255,255,0.1);">
+                            <div class="${f.type === 'dir' ? 'cursor-pointer' : ''} flex items-center gap-3 overflow-hidden flex-1" ${clickAction}>
+                                <i class="fas ${f.type === 'dir' ? 'fa-folder' : 'fa-file-code'} file-icon" style="opacity: 0.8;"></i>
+                                <span class="text-sm truncate file-name">${f.name}</span>
+                                <span class="file-size ml-2">${f.size}</span>
+                            </div>
+                            <div class="relative dropdown">
+                                <button class="p-1 rounded-full transition hover:opacity-100 opacity-50">
+                                    <i class="fas fa-ellipsis-v file-icon"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    ${f.type === 'file' ? `
+                                    <button onclick="editFile('${f.name}')"><i class="fas fa-edit"></i>Edit</button>
+                                    <button onclick="useAsStartCommand('${f.name}')"><i class="fas fa-terminal"></i>Use as Command</button>
+                                    <a href="/download/${currentServer}/${f.name}?path=${currentPath}"><i class="fas fa-download"></i>Download</a>
+                                    ` : ''}
+                                    <button onclick="deleteFile('${f.name}')" style="color: var(--danger);"><i class="fas fa-trash"></i>Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                if (currentPath && d.files && d.files.length > 0) {
+                    let totalSizeText = '0 B';
+                    if (totalFolderSize < 1024) {
+                        totalSizeText = totalFolderSize + ' B';
+                    } else if (totalFolderSize < 1024 * 1024) {
+                        totalSizeText = (totalFolderSize / 1024).toFixed(1) + ' KB';
+                    } else {
+                        totalSizeText = (totalFolderSize / (1024 * 1024)).toFixed(1) + ' MB';
+                    }
+                    
+                    const folderTotal = document.createElement('div');
+                    folderTotal.className = 'total-size';
+                    folderTotal.innerHTML = `📊 Total Size: ${totalSizeText}`;
+                    list.appendChild(folderTotal);
+                }
+            });
+        }
+
+        function showCreateFileDialog() {
+            document.getElementById('createFileModal').classList.remove('hidden');
+            document.getElementById('createFileModal').classList.add('flex');
+        }
+
+        function closeCreateFileModal() {
+            document.getElementById('createFileModal').classList.add('hidden');
+            document.getElementById('createFileModal').classList.remove('flex');
+            document.getElementById('new-filename').value = '';
+            document.getElementById('new-file-content').value = '';
+        }
+
+        function createNewFile() {
+            const filename = document.getElementById('new-filename').value;
+            const content = document.getElementById('new-file-content').value;
+            if (!filename || !currentServer) return;
+            const fd = new FormData();
+            fd.append('filename', filename);
+            fd.append('path', currentPath);
+            fd.append('content', content);
+            fetch('/create_file/' + currentServer, { method: 'POST', body: fd })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        closeCreateFileModal();
+                        loadFiles();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+        }
+
+        function createNewFolder() {
+            const name = prompt("Folder Name:");
+            if (name) {
+                const fd = new FormData();
+                fd.append('name', name);
+                fd.append('path', currentPath);
+                fetch('/create_folder/' + currentServer, { method: 'POST', body: fd })
+                    .then(() => loadFiles());
+            }
+        }
+
+        function uploadFile(input) {
+            if (!input.files[0] || !currentServer) return;
+            const fd = new FormData();
+            fd.append('file', input.files[0]);
+            fd.append('path', currentPath);
+            const btn = input.parentElement;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            fetch('/upload/' + currentServer, { method: 'POST', body: fd })
+                .then(() => {
+                    loadFiles();
+                    btn.innerHTML = '<i class="fas fa-upload mr-1"></i> Upload <input type="file" id="upload-input" class="hidden" onchange="uploadFile(this)">';
+                });
+        }
+
+        function deleteFile(name) {
+            if (!confirm('Delete ' + name + '?')) return;
+            fetch(`/delete_file/${currentServer}/${name}?path=${currentPath}`)
+                .then(() => loadFiles());
+        }
+
+        function editFile(filename) {
+            currentEditFile = { name: filename, path: currentPath };
+            fetch(`/file_content/${currentServer}?filename=${filename}&path=${currentPath}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.content !== undefined) {
+                        document.getElementById('edit-title').innerText = 'Editing: ' + filename;
+                        document.getElementById('edit-content').value = data.content;
+                        document.getElementById('editModal').classList.remove('hidden');
+                        document.getElementById('editModal').classList.add('flex');
+                    } else {
+                        alert('Error loading file');
+                    }
+                });
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('flex');
+        }
+
+        function saveEditedFile() {
+            const content = document.getElementById('edit-content').value;
+            const fd = new FormData();
+            fd.append('filename', currentEditFile.name);
+            fd.append('path', currentEditFile.path);
+            fd.append('content', content);
+            fetch('/save_file/' + currentServer, { method: 'POST', body: fd })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        closeEditModal();
+                        loadFiles();
+                    } else {
+                        alert('Save failed: ' + data.error);
+                    }
+                });
+        }
+
+        function useAsStartCommand(filename) {
+            let cmd = '';
+            if (filename.endsWith('.py')) cmd = 'python ' + filename;
+            else if (filename.endsWith('.js')) cmd = 'node ' + filename;
+            else if (filename.endsWith('.sh')) cmd = 'bash ' + filename;
+            else cmd = './' + filename;
+            document.getElementById('config-cmd').value = cmd;
+            document.getElementById('config-cwd').value = currentPath;
+            switchTab('config');
+        }
+
+        // --- Package Management ---
+        function packageAction(action) {
+            const type = document.getElementById('pkg-type').value;
+            const name = document.getElementById('pkg-name').value;
+            if (!name) {
+                alert("Enter package name!");
+                return;
+            }
+            const fd = new FormData();
+            fd.append('type', type);
+            fd.append('name', name);
+            const endpoint = action === 'install' ? '/install_pkg/' : '/uninstall_pkg/';
+            fetch(endpoint + currentServer, { method: 'POST', body: fd })
+                .then(() => {
+                    document.getElementById('pkg-name').value = '';
+                    switchTab('console');
+                });
+        }
+
+        // --- Telegram Bot ---
+        function deployTelegramBot() {
+            const token = document.getElementById('bot-token').value;
+            if (!token || !token.includes(':')) {
+                alert('Please enter a valid bot token');
+                return;
+            }
+            const fd = new FormData();
+            fd.append('token', token);
+            fetch('/telegram_bot', { method: 'POST', body: fd })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        alert('Bot deployed! Check dashboard for ' + data.server_name);
+                        document.getElementById('bot-token').value = '';
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+        }
+
+        // --- Stats ---
+        function updateStats() {
+    fetch('/system_stats')
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.cpu !== undefined && data.ram !== undefined) {
+                document.getElementById('cpu-usage').innerText = data.cpu + '%';
+                document.getElementById('ram-usage').innerText = data.ram + '%';
+            }
+        })
+        .catch(() => {
+            // Error হলে কিছু করবেন না, পুরনো ভ্যালু দেখাবে
+            console.log('Stats fetch failed');
+        });
+}
+    </script>
+</body>
+</html>
