@@ -1,0 +1,1143 @@
+<!-- templates/admin.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - {{ config.site_title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: {{ colors.primary }};
+            --secondary: {{ colors.secondary }};
+            --accent: {{ colors.accent }};
+            --bg: {{ colors.background }};
+            --card-bg: {{ colors.card_bg }};
+            --text: #ffffff;
+            --danger: {{ colors.danger }};
+            --header-text: #ffffff;
+            --stats-text: #ffffff;
+        }
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            padding-bottom: 80px;
+            min-height: 100vh;
+        }
+        .theme-gradient { 
+            background: linear-gradient(to right, var(--primary), var(--secondary), var(--accent)); 
+        }
+        .card-bg { 
+            background: var(--card-bg); 
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+        .stats-number {
+            color: var(--stats-text);
+            font-weight: bold;
+        }
+        .stats-text {
+            color: var(--stats-text);
+        }
+        .header-text {
+            color: var(--header-text);
+        }
+        .menu-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 14px;
+            border-left: 3px solid transparent;
+        }
+        .menu-item:hover {
+            background: rgba(0,0,0,0.2);
+            border-left-color: var(--primary);
+        }
+        .menu-item.active {
+            background: rgba(0,0,0,0.3);
+            border-left-color: var(--primary);
+        }
+        .main-view {
+            display: none;
+        }
+        .main-view.active {
+            display: block;
+        }
+        .server-card {
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: var(--bg); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
+        .log-text { font-size: 11px; user-select: text; }
+        
+        .color-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        .color-dot:hover {
+            transform: scale(1.2);
+            border-color: white;
+            box-shadow: 0 0 15px currentColor;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .color-item {
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .color-item:hover {
+            transform: scale(1.05);
+            border-color: var(--primary);
+        }
+        .color-item .dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 0 auto 5px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .color-item .name {
+            font-size: 9px;
+            opacity: 0.7;
+        }
+        
+        .file-item {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.2s;
+            margin-bottom: 2px;
+            color: #ffffff;
+        }
+        .file-item:hover {
+            background: rgba(0,0,0,0.5);
+            border-color: var(--primary);
+        }
+        .file-size {
+            font-size: 12px;
+            color: #ffffff;
+            opacity: 0.8;
+        }
+        .dropdown-menu { 
+            display: none; 
+            position: absolute; 
+            right: 0; 
+            top: 100%; 
+            background: var(--card-bg); 
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; 
+            z-index: 10; 
+            min-width: 200px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        .dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-menu button, .dropdown-menu a {
+            width: 100%;
+            text-align: left;
+            padding: 10px 15px;
+            color: var(--text);
+            transition: all 0.2s;
+            font-size: 13px;
+            border: none;
+            background: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dropdown-menu button:hover, .dropdown-menu a:hover {
+            background: rgba(0,0,0,0.3);
+            color: var(--primary);
+        }
+        .sidebar {
+            position: fixed;
+            left: -280px;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: var(--card-bg);
+            border-right: 2px solid var(--primary);
+            z-index: 1000;
+            transition: left 0.3s ease;
+            box-shadow: 5px 0 30px rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+        .sidebar.open { left: 0; }
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 999;
+            display: none;
+        }
+        .sidebar-overlay.open { display: block; }
+        .modal-enter { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .theme-active-border { 
+            border-bottom: 2px solid var(--primary); 
+            color: var(--primary); 
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+            animation: slideIn 0.5s ease-out;
+            display: none;
+        }
+        .toast.success { background: #00cc66; border-left: 5px solid #00ff80; }
+        .toast.error { background: #cc0033; border-left: 5px solid #ff0044; }
+        @keyframes slideIn {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="p-6 text-center border-b" style="border-color: var(--primary);">
+            <img src="{{ config.icon_url }}" alt="icon" class="w-12 h-12 mx-auto mb-2" style="filter: drop-shadow(0 0 10px var(--primary));">
+            <h2 class="text-xl font-bold mt-2 header-text">Admin Panel</h2>
+            <p class="text-xs mt-2 opacity-50">🔐 SECURE ACCESS</p>
+        </div>
+        <div class="menu-item active" onclick="switchView('dashboard')">
+            <i class="fas fa-tachometer-alt w-5"></i> Dashboard
+        </div>
+        <div class="menu-item" onclick="switchView('servers')">
+            <i class="fas fa-server w-5"></i> Servers
+        </div>
+        <div class="menu-item" onclick="switchView('settings')">
+            <i class="fas fa-cog w-5"></i> Settings
+        </div>
+        <div class="menu-item" onclick="location.href='/logout'">
+            <i class="fas fa-sign-out-alt w-5"></i> Logout
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="bg-black/90 backdrop-blur-md border-b sticky top-0 z-30 px-4 py-3 shadow-lg" style="border-color: var(--primary);">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="text-2xl hover:opacity-80 transition" style="color: var(--primary);">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center gap-2">
+                    <img src="{{ config.icon_url }}" alt="icon" class="w-6 h-6" style="filter: drop-shadow(0 0 5px var(--primary));">
+                    <h1 class="text-lg font-bold tracking-wider header-text">ADMIN PANEL</h1>
+                </div>
+            </div>
+            <div class="text-[10px] font-mono stats-text">
+                CPU: <span id="cpu-usage" class="stats-number">{{ cpu }}%</span> | 
+                RAM: <span id="ram-usage" class="stats-number">{{ ram }}%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="view-dashboard" class="main-view active px-4 py-6">
+        <h2 class="text-xl font-bold mb-6 header-text">📊 Dashboard</h2>
+        <div class="grid grid-cols-3 gap-4">
+            <div class="card-bg p-6 rounded-xl text-center">
+                <div class="text-3xl stats-number">{{ total_count }}</div>
+                <div class="text-xs opacity-50 stats-text">Total Servers</div>
+            </div>
+            <div class="card-bg p-6 rounded-xl text-center">
+                <div class="text-3xl stats-number" style="color: var(--primary);">{{ running_count }}</div>
+                <div class="text-xs opacity-50 stats-text">Running</div>
+            </div>
+            <div class="card-bg p-6 rounded-xl text-center">
+                <div class="text-3xl stats-number" style="color: var(--danger);">{{ total_count - running_count }}</div>
+                <div class="text-xs opacity-50 stats-text">Stopped</div>
+            </div>
+        </div>
+        <div class="card-bg p-6 rounded-xl mt-4">
+            <div class="flex justify-between items-center text-sm">
+                <span>🛡️ Restart Protection: <span style="color: var(--primary);">ACTIVE</span></span>
+                <span>📝 Max Log Lines: <span style="color: var(--primary);">50</span></span>
+                <span>⏱️ Uptime: <span id="uptime-display" style="color: var(--primary);">--</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Servers -->
+    <div id="view-servers" class="main-view px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold header-text">🖥️ Servers</h2>
+            <button onclick="document.getElementById('createModal').classList.remove('hidden')" 
+                    class="theme-gradient text-white px-4 py-2 rounded-lg text-sm font-bold">+ Create</button>
+        </div>
+        
+        <div class="space-y-4">
+            {% for id, s in servers.items() %}
+            <div class="card-bg rounded-2xl overflow-hidden shadow-lg relative server-card">
+                <div class="absolute left-0 top-0 bottom-0 w-1" style="background: {{ 'var(--primary)' if s.status == 'running' else 'var(--danger)' }};"></div>
+                <div class="p-5 pl-7">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-bold text-lg text-white">{{ id }}</h3>
+                            <p class="text-[10px] opacity-50 font-mono mt-1">{{ s.cmd }}</p>
+                            <p class="text-[9px] opacity-30 mt-1">Owner: {{ s.owner }}</p>
+                        </div>
+                        <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider" 
+                              style="background: rgba(0,0,0,0.3); color: {{ 'var(--primary)' if s.status == 'running' else 'var(--danger)' }}; border: 1px solid {{ 'var(--primary)' if s.status == 'running' else 'var(--danger)' }};">
+                            {{ s.status }}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2">
+                        {% if s.status == 'running' %}
+                        <a href="/admin/action/{{ id }}/stop" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">
+                            <i class="fas fa-stop"></i>
+                        </a>
+                        <a href="/admin/action/{{ id }}/restart" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: yellow; border: 1px solid yellow;">
+                            <i class="fas fa-sync"></i>
+                        </a>
+                        {% else %}
+                        <a href="/admin/action/{{ id }}/start" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: var(--primary); border: 1px solid var(--primary);">
+                            <i class="fas fa-play"></i>
+                        </a>
+                        <a href="/admin/action/{{ id }}/delete" onclick="return confirm('Delete this server?')" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                        {% endif %}
+                        <button onclick="openSettings('{{ id }}')" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: magenta; border: 1px solid magenta;">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button onclick="toggleLog('{{ id }}')" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: cyan; border: 1px solid cyan;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="openFileManager('{{ id }}')" class="hover:bg-opacity-20 rounded-lg py-2 flex justify-center transition" style="background: rgba(0,0,0,0.3); color: #ff9933; border: 1px solid #ff9933;">
+                            <i class="fas fa-folder"></i>
+                        </button>
+                    </div>
+                    <div id="log-box-{{ id }}" class="hidden mt-4 pt-3 border-t" style="border-color: var(--primary);">
+                        <div class="flex justify-end mb-1">
+                            <button onclick="copyLog('log-{{ id }}')" class="bg-black/50 hover:bg-black/80 rounded px-2 py-1 text-xs text-white opacity-40 hover:opacity-100 transition" title="Copy all logs">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <pre id="log-{{ id }}" class="bg-black p-3 rounded-lg text-[11px] h-32 overflow-y-auto custom-scroll font-mono leading-tight log-text" style="color: var(--primary);">Loading...</pre>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            {% if total_count == 0 %}
+            <div class="text-center py-10 opacity-50">
+                <i class="fas fa-server text-4xl mb-3" style="color: var(--primary);"></i>
+                <p class="text-xs">No servers deployed</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Settings - পাসওয়ার্ড চেঞ্জ + ২০ টি রং -->
+    <div id="view-settings" class="main-view px-4 py-6">
+        <h2 class="text-xl font-bold mb-6 header-text">⚙️ Settings</h2>
+        
+        <div class="card-bg p-6 rounded-xl space-y-6">
+            <!-- Site Settings -->
+            <div>
+                <label class="block text-sm mb-2 opacity-70 stats-text">Site Title</label>
+                <input type="text" id="site-title" value="{{ config.site_title }}" 
+                       class="w-full bg-black border p-3 rounded-lg" style="border-color: var(--primary); color: var(--text);">
+            </div>
+            <div>
+                <label class="block text-sm mb-2 opacity-70 stats-text">Site Header</label>
+                <input type="text" id="site-header" value="{{ config.site_header }}" 
+                       class="w-full bg-black border p-3 rounded-lg" style="border-color: var(--primary); color: var(--text);">
+            </div>
+            <div>
+                <label class="block text-sm mb-2 opacity-70 stats-text">Icon URL</label>
+                <input type="text" id="icon-url" value="{{ config.icon_url }}" 
+                       class="w-full bg-black border p-3 rounded-lg" style="border-color: var(--primary); color: var(--text);">
+            </div>
+            
+            <!-- Theme Select - ২০ টি রং -->
+            <div>
+                <label class="block text-sm mb-2 opacity-70 stats-text">Color Theme</label>
+                <select id="theme-mode" class="w-full bg-black border p-3 rounded-lg" style="border-color: var(--primary); color: var(--text);">
+                    <option value="matrix" {% if config.theme == 'matrix' %}selected{% endif %}>🌿 Matrix Green</option>
+                    <option value="night" {% if config.theme == 'night' %}selected{% endif %}>🌙 Night Blue</option>
+                    <option value="ocean" {% if config.theme == 'ocean' %}selected{% endif %}>🌊 Ocean Blue</option>
+                    <option value="sunset" {% if config.theme == 'sunset' %}selected{% endif %}>🌅 Sunset Orange</option>
+                    <option value="blood" {% if config.theme == 'blood' %}selected{% endif %}>🔴 Blood Red</option>
+                    <option value="neon" {% if config.theme == 'neon' %}selected{% endif %}>💜 Neon Purple</option>
+                    <option value="cyber" {% if config.theme == 'cyber' %}selected{% endif %}>💠 Cyber Cyan</option>
+                    <option value="vapor" {% if config.theme == 'vapor' %}selected{% endif %}>🌸 Vapor Pink</option>
+                    <option value="gold" {% if config.theme == 'gold' %}selected{% endif %}>👑 Royal Gold</option>
+                    <option value="silver" {% if config.theme == 'silver' %}selected{% endif %}>⚙️ Silver Grey</option>
+                    <!-- নতুন ১০ টি রং -->
+                    <option value="crimson" {% if config.theme == 'crimson' %}selected{% endif %}>❤️ Crimson Red</option>
+                    <option value="emerald" {% if config.theme == 'emerald' %}selected{% endif %}>💚 Emerald Green</option>
+                    <option value="sapphire" {% if config.theme == 'sapphire' %}selected{% endif %}>💙 Sapphire Blue</option>
+                    <option value="ruby" {% if config.theme == 'ruby' %}selected{% endif %}>❤️ Ruby Red</option>
+                    <option value="topaz" {% if config.theme == 'topaz' %}selected{% endif %}>💛 Topaz Yellow</option>
+                    <option value="amethyst" {% if config.theme == 'amethyst' %}selected{% endif %}>💜 Amethyst Purple</option>
+                    <option value="jade" {% if config.theme == 'jade' %}selected{% endif %}>💚 Jade Green</option>
+                    <option value="coral" {% if config.theme == 'coral' %}selected{% endif %}>🧡 Coral Pink</option>
+                    <option value="indigo" {% if config.theme == 'indigo' %}selected{% endif %}>💜 Indigo Blue</option>
+                    <option value="rose" {% if config.theme == 'rose' %}selected{% endif %}>🌹 Rose Gold</option>
+                </select>
+            </div>
+            
+            <!-- Font Select -->
+            <div>
+                <label class="block text-sm mb-2 opacity-70 stats-text">Font Style</label>
+                <select id="font-family" class="w-full bg-black border p-3 rounded-lg" style="border-color: var(--primary); color: var(--text);">
+                    <option value="default" {% if config.font_family == 'default' %}selected{% endif %}>📝 Default</option>
+                    <option value="hacker" {% if config.font_family == 'hacker' %}selected{% endif %}>💻 Hacker</option>
+                    <option value="terminal" {% if config.font_family == 'terminal' %}selected{% endif %}>🖥️ Terminal</option>
+                    <option value="code" {% if config.font_family == 'code' %}selected{% endif %}>⌨️ Code</option>
+                    <option value="retro" {% if config.font_family == 'retro' %}selected{% endif %}>📟 Retro</option>
+                </select>
+            </div>
+            
+            <!-- Color Grid - ২০ টি রং -->
+            <div>
+                <label class="block text-sm mb-2 opacity-70 stats-text">Quick Theme Preview</label>
+                <div class="color-grid">
+                    <div class="color-item" onclick="previewTheme('matrix')">
+                        <div class="dot" style="background:#00ff00;"></div>
+                        <span class="name">Matrix</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('night')">
+                        <div class="dot" style="background:#4d88ff;"></div>
+                        <span class="name">Night</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('ocean')">
+                        <div class="dot" style="background:#3399ff;"></div>
+                        <span class="name">Ocean</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('sunset')">
+                        <div class="dot" style="background:#ff9933;"></div>
+                        <span class="name">Sunset</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('blood')">
+                        <div class="dot" style="background:#ff4d4d;"></div>
+                        <span class="name">Blood</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('neon')">
+                        <div class="dot" style="background:#ff66ff;"></div>
+                        <span class="name">Neon</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('cyber')">
+                        <div class="dot" style="background:#33ffff;"></div>
+                        <span class="name">Cyber</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('vapor')">
+                        <div class="dot" style="background:#ff99ff;"></div>
+                        <span class="name">Vapor</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('gold')">
+                        <div class="dot" style="background:#ffcc66;"></div>
+                        <span class="name">Gold</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('silver')">
+                        <div class="dot" style="background:#b3b3b3;"></div>
+                        <span class="name">Silver</span>
+                    </div>
+                    <!-- নতুন ১০ টি রং -->
+                    <div class="color-item" onclick="previewTheme('crimson')">
+                        <div class="dot" style="background:#dc143c;"></div>
+                        <span class="name">Crimson</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('emerald')">
+                        <div class="dot" style="background:#50c878;"></div>
+                        <span class="name">Emerald</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('sapphire')">
+                        <div class="dot" style="background:#0f52ba;"></div>
+                        <span class="name">Sapphire</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('ruby')">
+                        <div class="dot" style="background:#e0115f;"></div>
+                        <span class="name">Ruby</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('topaz')">
+                        <div class="dot" style="background:#ffc87c;"></div>
+                        <span class="name">Topaz</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('amethyst')">
+                        <div class="dot" style="background:#9966cc;"></div>
+                        <span class="name">Amethyst</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('jade')">
+                        <div class="dot" style="background:#00a86b;"></div>
+                        <span class="name">Jade</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('coral')">
+                        <div class="dot" style="background:#ff7f50;"></div>
+                        <span class="name">Coral</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('indigo')">
+                        <div class="dot" style="background:#4b0082;"></div>
+                        <span class="name">Indigo</span>
+                    </div>
+                    <div class="color-item" onclick="previewTheme('rose')">
+                        <div class="dot" style="background:#b76e79;"></div>
+                        <span class="name">Rose</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ====== USER PASSWORD CHANGE ====== -->
+            <div class="border-t pt-6" style="border-color: var(--primary);">
+                <h3 class="text-lg font-bold mb-4 header-text">🔑 Change User Password</h3>
+                <div class="flex gap-3">
+                    <input type="text" id="new-user-password" placeholder="New User Password (min 3 chars)" 
+                           class="flex-1 bg-black border p-3 rounded-lg" style="border-color: var(--primary); color: var(--text);">
+                    <button onclick="changeUserPassword()" class="theme-gradient text-white px-6 py-3 rounded-lg font-bold transition hover:opacity-80">
+                        <i class="fas fa-save mr-2"></i> UPDATE
+                    </button>
+                </div>
+                <p class="text-xs opacity-50 mt-2">Current User Password: <span style="color: var(--primary);">{{ config.passwords.user }}</span></p>
+            </div>
+            
+            <!-- Save Button -->
+            <button onclick="saveSettings()" class="w-full theme-gradient text-white font-bold py-3 rounded-xl transition hover:opacity-80">
+                <i class="fas fa-save mr-2"></i> SAVE ALL SETTINGS
+            </button>
+        </div>
+    </div>
+
+    <!-- Create Server Modal -->
+    <div id="createModal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center">
+        <div class="card-bg w-full sm:w-96 rounded-t-3xl sm:rounded-2xl p-6 modal-enter">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-white font-bold text-lg">Deploy New Server</h3>
+                <button onclick="document.getElementById('createModal').classList.add('hidden')" class="opacity-50 hover:opacity-100"><i class="fas fa-times"></i></button>
+            </div>
+            <form action="/create_server" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <input type="text" name="server_name" placeholder="Name (e.g. MusicBot)" class="w-full bg-black border p-3 rounded-xl text-white focus:outline-none" style="border-color: var(--primary);" required>
+                <input type="text" name="start_command" placeholder="Command (e.g. python3 bot.py)" class="w-full bg-black border p-3 rounded-xl text-white focus:outline-none" style="border-color: var(--primary);" required>
+                <div class="border border-dashed rounded-xl p-4 text-center" style="border-color: var(--primary);">
+                    <input type="file" name="file" class="text-xs">
+                </div>
+                <button type="submit" class="w-full theme-gradient text-white font-bold py-3 rounded-xl transition hover:opacity-80">Create & Start</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Server Settings Modal -->
+    <div id="manageModal" class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="card-bg w-full max-w-2xl h-[80vh] rounded-2xl flex flex-col modal-enter">
+            <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--primary);">
+                <div>
+                    <h3 class="text-white font-bold text-lg" id="manage-title">Server Manager</h3>
+                    <span id="manage-id" class="text-xs opacity-50">ID: --</span>
+                </div>
+                <button onclick="closeSettings()" class="opacity-50 hover:opacity-100"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="flex border-b" style="border-color: var(--primary);">
+                <button onclick="switchTab('console')" id="tab-console" class="flex-1 py-3 text-sm font-bold theme-active-border">CONSOLE</button>
+                <button onclick="switchTab('config')" id="tab-config" class="flex-1 py-3 text-sm font-bold opacity-50 hover:opacity-100">CONFIG</button>
+                <button onclick="switchTab('packages')" id="tab-packages" class="flex-1 py-3 text-sm font-bold opacity-50 hover:opacity-100">PACKAGES</button>
+            </div>
+            <div class="flex-1 overflow-hidden relative">
+                <div id="view-console" class="absolute inset-0 flex flex-col p-4">
+                    <div class="flex gap-2 mb-3">
+                        <button onclick="adminServerAction('start')" class="flex-1 py-2 rounded-lg text-sm font-bold transition" style="background: rgba(0,0,0,0.3); color: var(--primary); border: 1px solid var(--primary);">
+                            <i class="fas fa-play mr-1"></i> START
+                        </button>
+                        <button onclick="adminServerAction('stop')" class="flex-1 py-2 rounded-lg text-sm font-bold transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">
+                            <i class="fas fa-stop mr-1"></i> STOP
+                        </button>
+                        <button onclick="adminServerAction('restart')" class="flex-1 py-2 rounded-lg text-sm font-bold transition" style="background: rgba(0,0,0,0.3); color: yellow; border: 1px solid yellow;">
+                            <i class="fas fa-sync mr-1"></i> RESTART
+                        </button>
+                    </div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] opacity-50">📝 Last 50 lines</span>
+                        <button onclick="copyLog('live-log')" class="bg-black/50 hover:bg-black/80 rounded px-2 py-1 text-xs text-white opacity-40 hover:opacity-100 transition">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <pre id="live-log" class="flex-1 bg-black p-4 rounded-xl text-[11px] font-mono overflow-y-auto custom-scroll mb-3 border log-text" style="color: var(--primary); border-color: var(--primary);">Loading...</pre>
+                    <div class="flex gap-2">
+                        <input type="text" id="console-input" placeholder="Type command & press Enter..." class="flex-1 bg-black border rounded-lg px-4 py-2 text-white text-sm focus:outline-none" style="border-color: var(--primary);">
+                        <button onclick="adminSendCommand()" class="px-4 rounded-lg transition" style="background: var(--primary); color: black;">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="view-config" class="hidden absolute inset-0 p-6 overflow-y-auto custom-scroll">
+                    <label class="block text-xs uppercase tracking-widest mb-2 opacity-70 stats-text">Start Command</label>
+                    <input id="config-cmd" class="w-full bg-black border p-3 rounded-xl mb-4 outline-none" style="border-color: var(--primary); color: var(--text);" value="">
+                    <label class="block text-xs uppercase tracking-widest mb-2 opacity-70 stats-text">Working Directory</label>
+                    <input id="config-cwd" placeholder="Folder name" class="w-full bg-black border p-3 rounded-xl mb-6 outline-none" style="border-color: var(--primary); color: var(--text);" value="">
+                    <hr class="border-opacity-20 mb-6" style="border-color: var(--primary);">
+                    <label class="block text-xs uppercase tracking-widest mb-2 opacity-70 stats-text">Auto Restart</label>
+                    <div class="flex items-center gap-4 mb-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="config-auto-restart" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
+                        <select id="config-restart-interval" class="bg-black border p-2 rounded-xl text-sm outline-none" style="border-color: var(--primary); color: var(--text);">
+                            <option value="30s">30 Seconds</option>
+                            <option value="1m">1 Minute</option>
+                            <option value="5m">5 Minutes</option>
+                            <option value="10m">10 Minutes</option>
+                            <option value="30m">30 Minutes</option>
+                            <option value="1h">1 Hour</option>
+                            <option value="2h">2 Hours</option>
+                            <option value="3h">3 Hours</option>
+                            <option value="6h">6 Hours</option>
+                            <option value="12h">12 Hours</option>
+                            <option value="24h">24 Hours</option>
+                        </select>
+                    </div>
+                    <div id="restart-countdown" class="text-xs mb-6 font-mono opacity-70 stats-text"></div>
+                    <button onclick="adminSaveConfig()" class="w-full theme-gradient text-white font-bold py-3 rounded-xl transition hover:opacity-80">SAVE CHANGES</button>
+                </div>
+                <div id="view-packages" class="hidden absolute inset-0 p-6 overflow-y-auto custom-scroll">
+                    <label class="block text-xs uppercase tracking-widest mb-2 opacity-70 stats-text">Package Name</label>
+                    <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                        <select id="pkg-type" class="w-full sm:w-32 bg-black border p-3 rounded-xl outline-none" style="border-color: var(--primary); color: var(--text);">
+                            <option value="pip">PIP</option>
+                            <option value="npm">NPM</option>
+                            <option value="apt">APT</option>
+                            <option value="pkg">PKG</option>
+                        </select>
+                        <input id="pkg-name" placeholder="e.g. requests" class="flex-1 bg-black border p-3 rounded-xl outline-none" style="border-color: var(--primary); color: var(--text);">
+                    </div>
+                    <div class="flex gap-3 mb-6">
+                        <button onclick="adminPackageAction('install')" class="flex-1 py-3 rounded-xl transition" style="background: rgba(0,0,0,0.3); color: var(--primary); border: 1px solid var(--primary);">
+                            <i class="fas fa-download mr-2"></i> INSTALL
+                        </button>
+                        <button onclick="adminPackageAction('uninstall')" class="flex-1 py-3 rounded-xl transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">
+                            <i class="fas fa-trash-alt mr-2"></i> UNINSTALL
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Manager Modal -->
+    <div id="fileModal" class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="card-bg w-full max-w-3xl h-[80vh] rounded-2xl flex flex-col modal-enter">
+            <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--primary);">
+                <div>
+                    <h3 class="text-white font-bold text-lg" id="file-title">File Manager</h3>
+                    <span id="file-path" class="text-xs opacity-50">/</span>
+                </div>
+                <button onclick="closeFileManager()" class="opacity-50 hover:opacity-100"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 custom-scroll" id="file-list">
+                <div class="text-center opacity-50">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit File Modal -->
+    <div id="editModal" class="hidden fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="card-bg w-full max-w-3xl h-[80vh] rounded-2xl flex flex-col modal-enter">
+            <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--primary);">
+                <h3 class="text-white font-bold text-lg" id="edit-title">Edit File</h3>
+                <button onclick="closeEditModal()" class="opacity-50 hover:opacity-100"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <textarea id="edit-content" class="flex-1 bg-black p-4 text-[13px] font-mono border-0 outline-none resize-none custom-scroll log-text" style="color: var(--primary);"></textarea>
+            <div class="p-4 border-t flex justify-end gap-3" style="border-color: var(--primary);">
+                <button onclick="closeEditModal()" class="px-6 py-2 rounded-lg transition" style="background: rgba(0,0,0,0.3); color: var(--danger); border: 1px solid var(--danger);">Cancel</button>
+                <button onclick="saveEditedFile()" class="px-6 py-2 theme-gradient text-white rounded-lg transition hover:opacity-80">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Variables ---
+        let currentServer = null;
+        let currentPath = '';
+        let logInterval = null;
+        let countdownInterval = null;
+        let fileServer = null;
+        let filePath = '';
+        let currentEditFile = { name: '', path: '', server: '' };
+
+        // --- Toast ---
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+
+        // --- Sidebar ---
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('open');
+        }
+
+        function switchView(view) {
+            document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + view).classList.add('active');
+            document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+            toggleSidebar();
+        }
+
+        // --- Copy Log ---
+        function copyLog(elementId) {
+            const pre = document.getElementById(elementId);
+            if (pre) {
+                const text = pre.textContent || pre.innerText;
+                navigator.clipboard.writeText(text).catch(() => {});
+                showToast('📋 Logs copied!', 'success');
+            }
+        }
+
+        // ===== PREVIEW THEME - ২০ টি রং (সবগুলো যোগ করা হয়েছে) =====
+        function previewTheme(theme) {
+            document.getElementById('theme-mode').value = theme;
+            const colors = {
+                matrix: { primary: '#00ff00', secondary: '#00cc00', accent: '#00ff80', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff0000', header_text: '#ffffff', stats_text: '#ffffff' },
+                night: { primary: '#4d88ff', secondary: '#3366cc', accent: '#aa88ff', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                ocean: { primary: '#3399ff', secondary: '#0066cc', accent: '#ff99cc', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                sunset: { primary: '#ff9933', secondary: '#cc6600', accent: '#ff66b3', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                blood: { primary: '#ff4d4d', secondary: '#cc0000', accent: '#ff80bf', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff0000', header_text: '#ffffff', stats_text: '#ffffff' },
+                neon: { primary: '#ff66ff', secondary: '#cc33cc', accent: '#ffff80', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                cyber: { primary: '#33ffff', secondary: '#00cccc', accent: '#ff80ff', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                vapor: { primary: '#ff99ff', secondary: '#cc66cc', accent: '#80ffff', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                gold: { primary: '#ffcc66', secondary: '#cc9933', accent: '#ffb380', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                silver: { primary: '#b3b3b3', secondary: '#808080', accent: '#cccccc', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                // ===== নতুন ১০ টি রং যোগ করা হয়েছে =====
+                crimson: { primary: '#dc143c', secondary: '#8b0000', accent: '#ff6b6b', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff0000', header_text: '#ffffff', stats_text: '#ffffff' },
+                emerald: { primary: '#50c878', secondary: '#2e8b57', accent: '#98fb98', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                sapphire: { primary: '#0f52ba', secondary: '#003366', accent: '#6699ff', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                ruby: { primary: '#e0115f', secondary: '#9b111e', accent: '#ff69b4', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff0000', header_text: '#ffffff', stats_text: '#ffffff' },
+                topaz: { primary: '#ffc87c', secondary: '#e8a317', accent: '#ffdb58', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                amethyst: { primary: '#9966cc', secondary: '#6a0dad', accent: '#d8b4fe', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                jade: { primary: '#00a86b', secondary: '#006a4e', accent: '#7ddfb3', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                coral: { primary: '#ff7f50', secondary: '#cd5c5c', accent: '#ffa07a', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                indigo: { primary: '#4b0082', secondary: '#2c0066', accent: '#8b5cf6', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' },
+                rose: { primary: '#b76e79', secondary: '#8a5a64', accent: '#e8a2b0', background: '#000000', card_bg: '#0a0a0a', text: '#ffffff', danger: '#ff4d4d', header_text: '#ffffff', stats_text: '#ffffff' }
+            };
+            if (colors[theme]) {
+                const c = colors[theme];
+                document.documentElement.style.setProperty('--primary', c.primary);
+                document.documentElement.style.setProperty('--secondary', c.secondary);
+                document.documentElement.style.setProperty('--accent', c.accent);
+                document.documentElement.style.setProperty('--bg', c.background);
+                document.documentElement.style.setProperty('--card-bg', c.card_bg);
+                document.documentElement.style.setProperty('--text', c.text);
+                document.documentElement.style.setProperty('--danger', c.danger);
+                document.documentElement.style.setProperty('--header-text', c.header_text);
+                document.documentElement.style.setProperty('--stats-text', c.stats_text);
+            }
+        }
+
+        function saveSettings() {
+            const fd = new FormData();
+            fd.append('site_title', document.getElementById('site-title').value);
+            fd.append('site_header', document.getElementById('site-header').value);
+            fd.append('icon_url', document.getElementById('icon-url').value);
+            fd.append('theme', document.getElementById('theme-mode').value);
+            fd.append('font_family', document.getElementById('font-family').value);
+            
+            fetch('/admin/update_config', { method: 'POST', body: fd })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        showToast('✅ Settings saved! Refreshing...', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showToast('❌ Error: ' + (data.error || 'Unknown error'), 'error');
+                    }
+                });
+        }
+
+        // ===== CHANGE USER PASSWORD =====
+        function changeUserPassword() {
+            const newPass = document.getElementById('new-user-password').value;
+            if (!newPass || newPass.length < 3) {
+                showToast('Password must be at least 3 characters!', 'error');
+                return;
+            }
+            if (newPass.length > 20) {
+                showToast('Password too long (max 20 chars)!', 'error');
+                return;
+            }
+            const fd = new FormData();
+            fd.append('new_password', newPass);
+            fetch('/admin/change_password', { method: 'POST', body: fd })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        showToast('✅ User password updated successfully!', 'success');
+                        document.getElementById('new-user-password').value = '';
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showToast('❌ Error: ' + data.error, 'error');
+                    }
+                })
+                .catch(() => showToast('❌ Network error', 'error'));
+        }
+
+        // --- Logs ---
+        function toggleLog(id) {
+            const box = document.getElementById('log-box-' + id);
+            if (box) box.classList.toggle('hidden');
+            if (!box.classList.contains('hidden')) {
+                refreshLog(id);
+            }
+        }
+
+        function refreshLog(id) {
+            fetch('/admin/get_logs/' + id).then(r => r.json()).then(d => {
+                const el = document.getElementById('log-' + id);
+                if (el && d.logs) {
+                    el.textContent = d.logs;
+                    el.scrollTop = el.scrollHeight;
+                }
+            });
+        }
+
+        setInterval(() => {
+            {% for id in servers %}
+            (function() {
+                const box = document.getElementById('log-box-{{ id }}');
+                if (box && !box.classList.contains('hidden')) {
+                    refreshLog('{{ id }}');
+                }
+            })();
+            {% endfor %}
+        }, 2000);
+
+        // --- Server Settings Modal ---
+        function openSettings(id) {
+            currentServer = id;
+            document.getElementById('manage-title').innerText = id;
+            document.getElementById('manage-id').innerText = "ID: " + id;
+            document.getElementById('manageModal').classList.remove('hidden');
+            document.getElementById('manageModal').classList.add('flex');
+            switchTab('console');
+            startCountdown();
+        }
+
+        function closeSettings() {
+            document.getElementById('manageModal').classList.add('hidden');
+            document.getElementById('manageModal').classList.remove('flex');
+            currentServer = null;
+            if (logInterval) clearInterval(logInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+        }
+
+        function switchTab(tab) {
+            ['console', 'config', 'packages'].forEach(t => {
+                document.getElementById('view-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).classList.remove('theme-active-border');
+                document.getElementById('tab-' + t).classList.add('opacity-50');
+            });
+            document.getElementById('view-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('theme-active-border');
+            document.getElementById('tab-' + tab).classList.remove('opacity-50');
+
+            if (tab === 'console') {
+                refreshLiveLog();
+                if (logInterval) clearInterval(logInterval);
+                logInterval = setInterval(refreshLiveLog, 1500);
+                loadServerConfig();
+            } else if (tab === 'config') {
+                loadServerConfig();
+            } else {
+                if (logInterval) clearInterval(logInterval);
+            }
+        }
+
+        function refreshLiveLog() {
+            if (!currentServer) return;
+            fetch('/admin/get_logs/' + currentServer).then(r => r.json()).then(d => {
+                const el = document.getElementById('live-log');
+                if (d.logs) {
+                    el.textContent = d.logs;
+                    el.scrollTop = el.scrollHeight;
+                }
+            });
+        }
+
+        function loadServerConfig() {
+            if (!currentServer) return;
+            fetch('/admin/files/' + currentServer + '?path=').then(r => r.json()).then(d => {
+                document.getElementById('config-cmd').value = d.cmd || '';
+                document.getElementById('config-cwd').value = d.cwd || '';
+                document.getElementById('config-auto-restart').checked = d.auto_restart || false;
+                document.getElementById('config-restart-interval').value = d.restart_interval || '1h';
+            });
+        }
+
+        function adminServerAction(action) {
+            if (!currentServer) return;
+            fetch('/admin/action/' + currentServer + '/' + action).then(() => {
+                showToast('🔄 Action: ' + action + ' triggered', 'success');
+                setTimeout(() => location.reload(), 500);
+            });
+        }
+
+        function adminSendCommand() {
+            const input = document.getElementById('console-input');
+            const cmd = input.value;
+            if (!cmd || !currentServer) return;
+            const fd = new FormData();
+            fd.append('command', cmd);
+            fetch('/send_input/' + currentServer, { method: 'POST', body: fd })
+                .then(() => {
+                    input.value = '';
+                    showToast('📝 Command sent', 'success');
+                    setTimeout(() => location.reload(), 500);
+                });
+        }
+
+        document.getElementById('console-input')?.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") adminSendCommand();
+        });
+
+        function adminPackageAction(action) {
+            const type = document.getElementById('pkg-type').value;
+            const name = document.getElementById('pkg-name').value;
+            if (!name) {
+                showToast('❌ Enter package name!', 'error');
+                return;
+            }
+            const fd = new FormData();
+            fd.append('type', type);
+            fd.append('name', name);
+            const endpoint = action === 'install' ? '/admin/install_pkg/' : '/admin/uninstall_pkg/';
+            fetch(endpoint + currentServer, { method: 'POST', body: fd })
+                .then(() => {
+                    document.getElementById('pkg-name').value = '';
+                    showToast('📦 Package ' + action + ' started', 'success');
+                    switchTab('console');
+                });
+        }
+
+        function adminSaveConfig() {
+            const cmd = document.getElementById('config-cmd').value;
+            const cwd = document.getElementById('config-cwd').value;
+            const autoRestart = document.getElementById('config-auto-restart').checked;
+            const restartInterval = document.getElementById('config-restart-interval').value;
+            const fd = new FormData();
+            fd.append('cmd', cmd);
+            fd.append('cwd', cwd);
+            fd.append('auto_restart', autoRestart);
+            fd.append('restart_interval', restartInterval);
+            fetch('/admin/update_settings/' + currentServer, { method: 'POST', body: fd })
+                .then(() => showToast('✅ Settings Saved!', 'success'));
+        }
+
+        function startCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+
+        function updateCountdown() {
+            if (!currentServer) return;
+            fetch('/server_info/' + currentServer)
+                .then(res => res.json())
+                .then(data => {
+                    const el = document.getElementById('restart-countdown');
+                    if (!data.auto_restart || data.status !== 'running') {
+                        el.innerText = '';
+                        return;
+                    }
+                    const intervalMap = {
+                        '30s': 30, '1m': 60, '5m': 300, '10m': 600, '30m': 1800,
+                        '1h': 3600, '2h': 7200, '3h': 10800, '6h': 21600,
+                        '12h': 43200, '24h': 86400
+                    };
+                    const intervalSec = intervalMap[data.restart_interval] || 3600;
+                    const elapsed = Math.floor(Date.now() / 1000) - data.last_start_time;
+                    const remaining = Math.max(0, intervalSec - elapsed);
+                    const mins = Math.floor(remaining / 60);
+                    const secs = remaining % 60;
+                    el.innerText = `🔄 Auto restart in: ${mins}m ${secs}s`;
+                });
+        }
+
+        // --- File Manager ---
+        function openFileManager(serverId) {
+            fileServer = serverId;
+            filePath = '';
+            document.getElementById('file-title').innerText = 'File Manager - ' + serverId;
+            document.getElementById('file-path').innerText = '/';
+            document.getElementById('fileModal').classList.remove('hidden');
+            document.getElementById('fileModal').classList.add('flex');
+            loadAdminFiles();
+        }
+
+        function closeFileManager() {
+            document.getElementById('fileModal').classList.add('hidden');
+            document.getElementById('fileModal').classList.remove('flex');
+            fileServer = null;
+        }
+
+        function loadAdminFiles(subpath = null) {
+            if (subpath !== null) filePath = subpath;
+            if (!fileServer) return;
+            
+            fetch(`/admin/files/${fileServer}?path=${filePath}`).then(r => r.json()).then(d => {
+                const list = document.getElementById('file-list');
+                list.innerHTML = '';
+                document.getElementById('file-path').innerText = '/' + filePath;
+                
+                if (filePath) {
+                    const parent = filePath.split('/').slice(0, -1).join('/');
+                    list.innerHTML += `
+                        <div onclick="loadAdminFiles('${parent}')" class="flex items-center p-3 bg-gray-900/30 rounded-lg cursor-pointer hover:bg-gray-800/50 transition file-item">
+                            <i class="fas fa-level-up-alt mr-3 file-icon"></i> 
+                            <span class="text-sm file-name">..</span>
+                        </div>`;
+                }
+                
+                if (d.files && d.files.length === 0) {
+                    list.innerHTML += '<div class="text-center mt-10 opacity-30">Empty directory</div>';
+                }
+                
+                d.files.forEach(f => {
+                    const clickAction = f.type === 'dir' ? `onclick="loadAdminFiles('${filePath ? filePath + '/' + f.name : f.name}')"` : '';
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center p-3 bg-black/30 rounded-lg hover:bg-black/50 transition group file-item">
+                            <div class="${f.type === 'dir' ? 'cursor-pointer' : ''} flex items-center gap-3 overflow-hidden flex-1" ${clickAction}>
+                                <i class="fas ${f.type === 'dir' ? 'fa-folder' : 'fa-file-code'} file-icon" style="opacity: 0.8;"></i>
+                                <span class="text-sm truncate file-name">${f.name}</span>
+                                <span class="file-size ml-2">${f.size}</span>
+                            </div>
+                            <div class="relative dropdown">
+                                <button class="p-1 rounded-full transition hover:opacity-100 opacity-50">
+                                    <i class="fas fa-ellipsis-v file-icon"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    ${f.type === 'file' ? `
+                                    <button onclick="adminEditFile('${f.name}')"><i class="fas fa-edit"></i>Edit</button>
+                                    <a href="/admin/download/${fileServer}/${f.name}?path=${filePath}"><i class="fas fa-download"></i>Download</a>
+                                    ` : ''}
+                                    <button onclick="adminDeleteFile('${f.name}')" style="color: var(--danger);"><i class="fas fa-trash"></i>Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function adminEditFile(filename) {
+            currentEditFile = { name: filename, path: filePath, server: fileServer };
+            fetch(`/admin/file_content/${fileServer}?filename=${filename}&path=${filePath}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.content !== undefined) {
+                        document.getElementById('edit-title').innerText = 'Editing: ' + filename;
+                        document.getElementById('edit-content').value = data.content;
+                        document.getElementById('editModal').classList.remove('hidden');
+                        document.getElementById('editModal').classList.add('flex');
+                    } else {
+                        showToast('❌ Error loading file', 'error');
+                    }
+                });
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('flex');
+        }
+
+        function saveEditedFile() {
+            const content = document.getElementById('edit-content').value;
+            const fd = new FormData();
+            fd.append('filename', currentEditFile.name);
+            fd.append('path', currentEditFile.path);
+            fd.append('content', content);
+            fetch('/save_file/' + currentEditFile.server, { method: 'POST', body: fd })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        showToast('✅ File saved!', 'success');
+                        closeEditModal();
+                        loadAdminFiles();
+                    } else {
+                        showToast('❌ Save failed: ' + data.error, 'error');
+                    }
+                });
+        }
+
+        function adminDeleteFile(filename) {
+            if (!confirm('Delete ' + filename + '?')) return;
+            fetch(`/admin/delete_file/${fileServer}/${filename}?path=${filePath}`)
+                .then(() => loadAdminFiles());
+        }
+
+        // --- Stats ---
+        function updateStats() {
+            fetch('/system_stats')
+                .then(res => {
+                    if (!res.ok) throw new Error('Network error');
+                    return res.json();
+                })
+                .then(data => {
+                    if (data && data.cpu !== undefined && data.ram !== undefined) {
+                        document.getElementById('cpu-usage').innerText = data.cpu + '%';
+                        document.getElementById('ram-usage').innerText = data.ram + '%';
+                    }
+                })
+                .catch(() => {
+                    // Error হলে কিছু করবেন না, পুরনো ভ্যালু দেখাবে
+                    console.log('Stats fetch failed');
+                });
+        }
+        setInterval(updateStats, 5000);
+
+        // --- Uptime ---
+        function updateUptime() {
+            fetch('/health')
+                .then(res => res.json())
+                .then(data => {
+                    const uptime = data.uptime || 0;
+                    const hours = Math.floor(uptime / 3600);
+                    const mins = Math.floor((uptime % 3600) / 60);
+                    const el = document.getElementById('uptime-display');
+                    if (el) el.innerText = hours + 'h ' + mins + 'm';
+                })
+                .catch(() => {});
+        }
+        setInterval(updateUptime, 10000);
+        updateUptime();
+    </script>
+</body>
+</html>
