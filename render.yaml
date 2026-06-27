@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: shappno-vps
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:8080 --workers=2 --threads=4 --timeout=120 --graceful-timeout=30
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: WEB_CONCURRENCY
+        value: "4"
+      - key: DEBUG
+        value: "False"
+      - key: PORT
+        value: "8080"
